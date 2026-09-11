@@ -107,6 +107,9 @@ db.sqlite3-journal
 
 # Flask stuff:
 instance/
+
+# GUI process management
+gui/.gui.pid
 .webassets-cache
 
 # Scrapy stuff:
