@@ -108,6 +108,8 @@ def test_multi_url_live_validation_warns():
     )
     app.run()
     assert any("bogus-url" in w.value for w in app.warning)
+    # The readiness caption counts only valid URLs.
+    assert any("2 valid URL(s) ready to scrape." in c.value for c in app.caption)
 
 
 def test_successful_single_run_renders_results(monkeypatch):

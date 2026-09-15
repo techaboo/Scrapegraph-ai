@@ -134,8 +134,9 @@ else:
     )
     source_urls = parse_urls(urls_text)
     bad_urls = invalid_urls(source_urls)
-    if source_urls:
-        st.caption(f"✅ {len(source_urls)} URL(s) ready to scrape.")
+    valid_urls = [url for url in source_urls if url not in bad_urls]
+    if valid_urls:
+        st.caption(f"✅ {len(valid_urls)} valid URL(s) ready to scrape.")
     for bad_url in bad_urls:
         st.warning(f"Not a valid http(s) URL: `{bad_url}`")
     prompt = st.text_area(
