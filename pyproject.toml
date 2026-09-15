@@ -127,4 +127,5 @@ dev = [
     "langchain-fireworks>=1.6.1",
     "pandas>=2.3.3",
     "selenium>=4.49.0",
+    "streamlit>=1.52.2",
 ]

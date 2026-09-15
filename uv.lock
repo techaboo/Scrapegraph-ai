@@ -3817,6 +3817,7 @@ dev = [
     { name = "pytest-sugar" },
     { name = "ruff" },
     { name = "selenium" },
+    { name = "streamlit" },
     { name = "types-setuptools" },
 ]
 
@@ -3871,6 +3872,7 @@ dev = [
     { name = "pytest-sugar", specifier = ">=1.0.0" },
     { name = "ruff", specifier = ">=0.2.0" },
     { name = "selenium", specifier = ">=4.49.0" },
+    { name = "streamlit", specifier = ">=1.52.2" },
     { name = "types-setuptools", specifier = ">=75.1.0" },
 ]
 
