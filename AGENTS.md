@@ -116,6 +116,8 @@ scrapegraphai/
 examples/          # runnable usage examples, one folder per graph
 tests/             # pytest suite, mirrors the package layout
 docs/              # documentation sources
+gui/               # optional Streamlit GUI (core logic in gui_core.py is UI-free)
+scripts/           # PowerShell helpers to start/stop/restart/status the GUI
 ```
 
 When adding a node or graph, register it in the corresponding `__init__.py` and
