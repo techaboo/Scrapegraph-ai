@@ -96,6 +96,12 @@ class TestBuildGraphConfig:
         config = gui_core.build_graph_config(max_results=5)
         assert config["max_results"] == 5
 
+    def test_depth_only_when_greater_than_one(self):
+        config1 = gui_core.build_graph_config(depth=1)
+        assert "depth" not in config1
+        config2 = gui_core.build_graph_config(depth=3)
+        assert config2["depth"] == 3
+
     def test_custom_values(self):
         config = gui_core.build_graph_config(
             model="ollama/llama3",
@@ -118,25 +124,52 @@ class TestRunScrapeDispatch:
         with pytest.raises(ValueError, match="Unknown scrape mode"):
             gui_core.run_scrape("bogus", "prompt", {})
 
-    def test_single_mode_requires_url(self):
+    def test_scrape_mode_requires_url(self):
+        with pytest.raises(ValueError, match="target URL is required"):
+            gui_core.run_scrape(gui_core.MODE_SCRAPE, config={})
+
+    def test_extract_mode_requires_url_and_prompt(self):
         with pytest.raises(ValueError, match="source URL is required"):
-            gui_core.run_scrape(gui_core.MODE_SINGLE, "prompt", {})
+            gui_core.run_scrape(gui_core.MODE_EXTRACT, prompt="prompt", config={})
+        with pytest.raises(ValueError, match="prompt is required"):
+            gui_core.run_scrape(
+                gui_core.MODE_EXTRACT, url="https://example.com", config={}
+            )
 
-    def test_multi_mode_requires_urls(self):
+    def test_crawl_mode_requires_urls(self):
         with pytest.raises(ValueError, match="At least one URL"):
-            gui_core.run_scrape(gui_core.MODE_MULTI, "prompt", {}, urls=[])
+            gui_core.run_scrape(
+                gui_core.MODE_CRAWL, prompt="prompt", config={}, urls=[]
+            )
 
-    def test_single_mode_delegates(self, monkeypatch):
+    def test_search_mode_requires_query(self):
+        with pytest.raises(ValueError, match="search query or prompt is required"):
+            gui_core.run_scrape(gui_core.MODE_SEARCH, prompt="", config={})
+
+    def test_scrape_mode_delegates(self, monkeypatch):
+        sentinel = object()
+        monkeypatch.setattr(
+            gui_core, "run_scrape_markdown", lambda url, config: sentinel
+        )
+        result = gui_core.run_scrape(
+            gui_core.MODE_SCRAPE, url="https://example.com", config={"x": 1}
+        )
+        assert result is sentinel
+
+    def test_extract_mode_delegates(self, monkeypatch):
         sentinel = object()
         calls = {}
 
-        def fake_run_single(prompt, url, config):
+        def fake_run_extract(prompt, url, config):
             calls.update(prompt=prompt, url=url, config=config)
             return sentinel
 
-        monkeypatch.setattr(gui_core, "run_single", fake_run_single)
+        monkeypatch.setattr(gui_core, "run_extract", fake_run_extract)
         result = gui_core.run_scrape(
-            gui_core.MODE_SINGLE, "p", {"x": 1}, url="https://example.com"
+            gui_core.MODE_EXTRACT,
+            prompt="p",
+            config={"x": 1},
+            url="https://example.com",
         )
         assert result is sentinel
         assert calls == {
@@ -145,20 +178,22 @@ class TestRunScrapeDispatch:
             "config": {"x": 1},
         }
 
-    def test_multi_mode_delegates(self, monkeypatch):
+    def test_crawl_mode_delegates(self, monkeypatch):
         sentinel = object()
         monkeypatch.setattr(
-            gui_core, "run_multi", lambda prompt, urls, config: sentinel
+            gui_core,
+            "run_crawl",
+            lambda prompt, urls, config, depth: sentinel,
         )
         result = gui_core.run_scrape(
-            gui_core.MODE_MULTI, "p", {}, urls=["https://example.com"]
+            gui_core.MODE_CRAWL, prompt="p", config={}, urls=["https://example.com"]
         )
         assert result is sentinel
 
     def test_search_mode_delegates(self, monkeypatch):
         sentinel = object()
         monkeypatch.setattr(gui_core, "run_search", lambda prompt, config: sentinel)
-        result = gui_core.run_scrape(gui_core.MODE_SEARCH, "p", {})
+        result = gui_core.run_scrape(gui_core.MODE_SEARCH, prompt="p", config={})
         assert result is sentinel
 
 
@@ -184,8 +219,8 @@ class TestExecuteGraphNormalization:
                 "results": [{"a": 1}, {"b": 2}],
             }
         )
-        result = gui_core._execute_graph(graph, gui_core.MODE_MULTI, 0.0)
-        assert result.mode == gui_core.MODE_MULTI
+        result = gui_core._execute_graph(graph, gui_core.MODE_CRAWL, 0.0)
+        assert result.mode == gui_core.MODE_CRAWL
         assert result.answer == {"merged": True}
         assert result.considered_urls == ["https://a.com", "https://b.com"]
         assert result.site_results == [
@@ -196,7 +231,7 @@ class TestExecuteGraphNormalization:
 
     def test_handles_missing_state_keys(self):
         graph = self._FakeGraph({"answer": "text answer"})
-        result = gui_core._execute_graph(graph, gui_core.MODE_SINGLE, 0.0)
+        result = gui_core._execute_graph(graph, gui_core.MODE_EXTRACT, 0.0)
         assert result.answer == "text answer"
         assert result.considered_urls == []
         assert result.site_results == []

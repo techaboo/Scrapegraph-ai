@@ -58,8 +58,22 @@ class MarkdownifyNode(BaseNode):
         input_keys = self.get_input_keys(state)
         html_content = state[input_keys[0]]
 
+        # Handle list of LangChain Document objects or strings produced by FetchNode
+        if isinstance(html_content, list):
+            extracted_parts = []
+            for item in html_content:
+                if hasattr(item, "page_content"):
+                    extracted_parts.append(str(item.page_content))
+                else:
+                    extracted_parts.append(str(item))
+            raw_html = "\n\n".join(extracted_parts)
+        elif hasattr(html_content, "page_content"):
+            raw_html = str(html_content.page_content)
+        else:
+            raw_html = str(html_content)
+
         # Convert HTML to Markdown
-        markdown_content = convert_to_md(html_content)
+        markdown_content = convert_to_md(raw_html)
 
         # Update state with markdown content
         state.update({self.output[0]: markdown_content})
